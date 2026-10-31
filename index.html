@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#173f32">
+<title>Kartenspiele</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-table="green">
+
+<main id="home" class="view">
+  <header class="home-head">
+    <div>
+      <p class="greet" id="greet">Guten Tag</p>
+      <h1>Kartenspiele</h1>
+    </div>
+    <button class="tb" id="btnSettings"></button>
+  </header>
+  <section class="tiles" id="tiles"></section>
+</main>
+
+<section id="game" class="view hidden">
+  <div class="bar">
+    <button class="tb" id="btnMenu"></button>
+    <div class="ttl"><strong id="gTitle"></strong><small id="gSub"></small></div>
+    <div class="tb-group">
+      <button class="tb accent hidden" id="btnFinish"></button>
+      <button class="tb" id="btnHint"></button>
+      <button class="tb" id="btnUndo"></button>
+      <button class="tb" id="btnNew"></button>
+    </div>
+  </div>
+  <div class="board" id="board"></div>
+</section>
+
+<div class="modal hidden" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="games.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
