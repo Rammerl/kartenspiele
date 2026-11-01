@@ -2,7 +2,7 @@
 /* Offline-Speicher: alle Dateien werden bei der Installation abgelegt.
    Für ein Update die Versionsnummer erhöhen – das Tablet holt sich die
    neue Fassung beim nächsten Start mit Internet. */
-const CACHE = 'kartenspiele-v1';
+const CACHE = 'kartenspiele-v2';
 const FILES = [
   './', 'index.html', 'style.css', 'games.js', 'app.js',
   'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
