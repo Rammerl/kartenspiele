@@ -1,6 +1,7 @@
 'use strict';
 /* Oberfläche: Startseite, Spielfeld, Ziehen/Tippen, Rückgängig, Tipp, Speichern */
 
+const VERSION = 4; // zusammen mit CACHE in sw.js erhöhen
 const GAMES = { spider: Spider, klondike: Klondike, freecell: FreeCell };
 const SUIT = { s: '♠︎', h: '♥︎', d: '♦︎', c: '♣︎' };
 const DESC = {
@@ -117,7 +118,8 @@ function openSettings() {
      <div class="opt"><label>Karte automatisch anlegen durch</label>${seg('tap', [['double', 'Doppeltippen'], ['single', 'Einmal tippen']])}</div>
      <div class="opt"><label>Beschriftung der Bildkarten</label>${seg('labels', [['jqk', 'J · Q · K'], ['bdk', 'B · D · K']])}</div>
      <div class="opt"><label>Tischfarbe</label><div class="swatches" data-key="table">${sw}</div></div>
-     <div class="acts"><button class="btn primary" data-act="close">Fertig</button></div>`,
+     <div class="acts"><button class="btn primary" data-act="close">Fertig</button></div>
+     <p class="version">Version ${VERSION}</p>`,
     { close: closeModal }
   );
 }
@@ -171,6 +173,7 @@ function openGame(id, fresh) {
 function showHome() {
   if (G) save();
   G = null;
+  if (reloadPending) { location.reload(); return; }
   closeModal();
   $('game').classList.add('hidden');
   $('home').classList.remove('hidden');
@@ -594,7 +597,17 @@ $('btnNew').onclick = () => {
 window.addEventListener('resize', () => { if (G) render(false); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// Neue Version wurde im Hintergrund geladen: sofort neu laden, im Spiel erst beim Wechsel ins Menü
+let reloadPending = false;
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
+    if (G) reloadPending = true;
+    else location.reload();
+  });
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
 applyTable();
 if (history.state && history.state.game) history.replaceState(null, '');

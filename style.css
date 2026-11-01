@@ -82,18 +82,25 @@ h1 { margin: 6px 0 0; font-size: clamp(36px, 5vw, 54px); font-weight: 300; lette
 
 /* ---------- Spielleiste ---------- */
 .bar {
-  flex: none; height: 50px;
-  display: flex; align-items: center; gap: 8px;
-  padding: 0 8px;
+  /* Höhe wächst mit dem Bildschirm: ca. 6 % der Höhe, zwischen 38 und 60 px */
+  --bar: clamp(38px, 6vh, 60px);
+  flex: none; height: var(--bar);
+  display: flex; align-items: center; gap: calc(var(--bar) * .16);
+  padding: 0 calc(var(--bar) * .16);
   background: linear-gradient(rgba(0,0,0,.34), rgba(0,0,0,.2));
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
-.ttl { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 12px; padding-left: 6px; white-space: nowrap; }
-.ttl strong { font-size: 19px; font-weight: 600; }
-.ttl small { font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
-.tb-group { display: flex; gap: 6px; }
-.bar .tb { height: 40px; padding: 0 13px; font-size: 16px; border-radius: 12px; }
-.bar .tb svg { width: 21px; height: 21px; }
+.ttl { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: calc(var(--bar) * .24); padding-left: calc(var(--bar) * .1); white-space: nowrap; }
+.ttl strong { font-size: calc(var(--bar) * .38); font-weight: 600; }
+.ttl small { font-size: calc(var(--bar) * .28); color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.tb-group { display: flex; gap: calc(var(--bar) * .12); }
+.bar .tb {
+  height: calc(var(--bar) * .8); padding: 0 calc(var(--bar) * .26);
+  gap: calc(var(--bar) * .14);
+  font-size: calc(var(--bar) * .32); border-radius: calc(var(--bar) * .24);
+}
+.bar .tb svg { width: calc(var(--bar) * .42); height: calc(var(--bar) * .42); }
+.version { margin-top: 18px; text-align: center; font-size: 13px; color: #8a918c; }
 .tb {
   display: flex; align-items: center; gap: 8px;
   height: 52px; padding: 0 16px;
