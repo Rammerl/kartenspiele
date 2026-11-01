@@ -2,14 +2,16 @@
 /* Offline-Speicher: alle Dateien werden bei der Installation abgelegt.
    Für ein Update die Versionsnummer erhöhen – das Tablet holt sich die
    neue Fassung beim nächsten Start mit Internet. */
-const CACHE = 'kartenspiele-v2';
+const CACHE = 'kartenspiele-v3';
 const FILES = [
   './', 'index.html', 'style.css', 'games.js', 'app.js',
   'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // 'reload' umgeht den Browser-Zwischenspeicher, sonst landen alte Dateien im neuen Cache
+  const requests = FILES.map(f => new Request(f, { cache: 'reload' }));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(requests)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
