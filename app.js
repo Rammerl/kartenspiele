@@ -1,7 +1,7 @@
 'use strict';
 /* Oberfläche: Startseite, Spielfeld, Ziehen/Tippen, Rückgängig, Tipp, Speichern */
 
-const VERSION = 4; // zusammen mit CACHE in sw.js erhöhen
+const VERSION = 5; // zusammen mit CACHE in sw.js erhöhen
 const GAMES = { spider: Spider, klondike: Klondike, freecell: FreeCell };
 const SUIT = { s: '♠︎', h: '♥︎', d: '♦︎', c: '♣︎' };
 const DESC = {
@@ -118,9 +118,23 @@ function openSettings() {
      <div class="opt"><label>Karte automatisch anlegen durch</label>${seg('tap', [['double', 'Doppeltippen'], ['single', 'Einmal tippen']])}</div>
      <div class="opt"><label>Beschriftung der Bildkarten</label>${seg('labels', [['jqk', 'J · Q · K'], ['bdk', 'B · D · K']])}</div>
      <div class="opt"><label>Tischfarbe</label><div class="swatches" data-key="table">${sw}</div></div>
+     <div class="opt"><label>Spiel weitergeben</label><button class="btn ghost wide" data-act="qr">QR-Code zum Abrufen zeigen</button></div>
      <div class="acts"><button class="btn primary" data-act="close">Fertig</button></div>
      <p class="version">Version ${VERSION}</p>`,
-    { close: closeModal }
+    { close: closeModal, qr: openQR }
+  );
+}
+function openQR() {
+  const url = location.origin + location.pathname.replace(/index\.html$/, '');
+  let img;
+  try { img = QR.svg(url); } catch (e) { img = '<p class="lead">QR-Code konnte nicht erstellt werden.</p>'; }
+  openModal(
+    `<h2>Spiel abrufen</h2>
+     <p class="lead">Mit der Kamera eines anderen Handys oder Tablets scannen – dann öffnet sich das Spiel dort.</p>
+     <div class="qr">${img}</div>
+     <p class="qr-url">${url.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>
+     <div class="acts"><button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="close">Fertig</button></div>`,
+    { back: openSettings, close: closeModal }
   );
 }
 

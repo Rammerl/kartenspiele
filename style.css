@@ -267,3 +267,7 @@ h1 { margin: 6px 0 0; font-size: clamp(36px, 5vw, 54px); font-weight: 300; lette
   .tb span { display: none; }
   .tb { padding: 0 14px; }
 }
+.btn.wide { width: 100%; }
+.qr { width: min(300px, 70vw); margin: 4px auto 0; padding: 0; background: #fff; border-radius: 12px; }
+.qr svg { display: block; width: 100%; height: auto; stroke: none; }
+.qr-url { margin: 12px 0 0; text-align: center; font-size: 15px; color: #5a645e; word-break: break-all; }
