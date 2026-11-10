@@ -1,7 +1,7 @@
 'use strict';
 /* Oberfläche: Startseite, Spielfeld, Ziehen/Tippen, Rückgängig, Tipp, Speichern */
 
-const VERSION = 4; // zusammen mit CACHE in sw.js erhöhen
+const VERSION = 6; // zusammen mit CACHE in sw.js erhöhen
 const GAMES = { spider: Spider, klondike: Klondike, freecell: FreeCell };
 const SUIT = { s: '♠︎', h: '♥︎', d: '♦︎', c: '♣︎' };
 const DESC = {
@@ -52,6 +52,22 @@ function rankLabel(r) {
   return r === 11 ? (de ? 'B' : 'J') : r === 12 ? (de ? 'D' : 'Q') : 'K';
 }
 const statOf = id => stats[id] || (stats[id] = { played: 0, won: 0 });
+const fmtNum = n => n.toLocaleString('de-DE');
+const fmtTime = sec => {
+  const m = Math.floor(sec / 60), x = Math.floor(sec % 60);
+  return m >= 60 ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ':' + String(x).padStart(2, '0')
+    : m + ':' + String(x).padStart(2, '0');
+};
+/* Punkte: je schneller, desto mehr. Nach 5 Minuten noch die Hälfte, nach 15 Minuten ein Viertel.
+   Schwierigere Varianten zählen mehr. */
+function difficulty(s) {
+  if (G.id === 'spider') return s.opts.suits === 4 ? 3 : s.opts.suits === 2 ? 2 : 1;
+  if (G.id === 'klondike') return s.opts.draw === 3 ? 1.5 : 1;
+  return 1;
+}
+function score(s) {
+  return Math.round(difficulty(s) * 10000 * 300 / (300 + (s.time || 0)) / 10) * 10;
+}
 
 let toastTimer;
 function toast(msg) {
@@ -118,9 +134,23 @@ function openSettings() {
      <div class="opt"><label>Karte automatisch anlegen durch</label>${seg('tap', [['double', 'Doppeltippen'], ['single', 'Einmal tippen']])}</div>
      <div class="opt"><label>Beschriftung der Bildkarten</label>${seg('labels', [['jqk', 'J · Q · K'], ['bdk', 'B · D · K']])}</div>
      <div class="opt"><label>Tischfarbe</label><div class="swatches" data-key="table">${sw}</div></div>
+     <div class="opt"><label>Spiel weitergeben</label><button class="btn ghost wide" data-act="qr">QR-Code zum Abrufen zeigen</button></div>
      <div class="acts"><button class="btn primary" data-act="close">Fertig</button></div>
      <p class="version">Version ${VERSION}</p>`,
-    { close: closeModal }
+    { close: closeModal, qr: openQR }
+  );
+}
+function openQR() {
+  const url = location.origin + location.pathname.replace(/index\.html$/, '');
+  let img;
+  try { img = QR.svg(url); } catch (e) { img = '<p class="lead">QR-Code konnte nicht erstellt werden.</p>'; }
+  openModal(
+    `<h2>Spiel abrufen</h2>
+     <p class="lead">Mit der Kamera eines anderen Handys oder Tablets scannen – dann öffnet sich das Spiel dort.</p>
+     <div class="qr">${img}</div>
+     <p class="qr-url">${url.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>
+     <div class="acts"><button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="close">Fertig</button></div>`,
+    { back: openSettings, close: closeModal }
   );
 }
 
@@ -132,14 +162,14 @@ function renderHome() {
     .map(g => {
       const sv = store.get('save.' + g.id, null);
       const cont = sv && sv.st && !sv.st.won && sv.st.moves > 0;
-      const won = statOf(g.id).won;
+      const { won, best } = statOf(g.id);
       const fan = FAN[g.id]
         .map(([r, s]) => `<div class="mini ${isRed(s) ? 'red' : ''}"><b>${rankLabel(r)}</b><i>${SUIT[s]}</i></div>`)
         .join('');
       return `<article class="tile" data-g="${g.id}">
         <div class="art">${fan}</div>
         <div><h2>${g.name}</h2><p>${DESC[g.id]}</p>
-        <div class="meta">${won ? (won === 1 ? '1 Spiel gewonnen' : won + ' Spiele gewonnen') : ''}</div></div>
+        <div class="meta">${won ? (won === 1 ? '1 Spiel gewonnen' : won + ' Spiele gewonnen') : ''}${best ? ' · Bestwert ' + fmtNum(best) + ' Punkte' : ''}</div></div>
         <div class="acts"><button class="btn primary" data-act="play">${cont ? 'Weiterspielen' : 'Spielen'}</button>
         ${cont ? '<button class="btn ghost" data-act="new">Neu</button>' : ''}</div>
       </article>`;
@@ -365,7 +395,11 @@ function changed() {
   updateBar();
   if (!st.won && G.won(st)) {
     st.won = true;
-    statOf(G.id).won++;
+    const sc = statOf(G.id);
+    sc.won++;
+    st.score = score(st);
+    st.record = st.score > (sc.best || 0);
+    if (st.record) sc.best = st.score;
     store.set('stats', stats);
     setTimeout(showWin, 800);
   }
@@ -374,7 +408,9 @@ function changed() {
 
 function undo() {
   if (busy || !hist.length) return;
+  const time = st.time;
   st = JSON.parse(hist.pop());
+  st.time = time; // Rückgängig hält die Uhr nicht an
   lastTap = null;
   render();
   updateBar();
@@ -553,9 +589,25 @@ function updateBar() {
   $('gTitle').textContent = G.name;
   const sub = G.subtitle(st);
   $('gSub').textContent = (sub ? sub + ' · ' : '') + 'Züge: ' + st.moves;
+  updateScore();
   $('btnUndo').disabled = !hist.length;
   $('btnFinish').classList.toggle('hidden', !canAutoFinish());
 }
+
+function updateScore() {
+  const pts = st.won ? st.score : score(st);
+  $('gScore').innerHTML = `<span>${fmtTime(st.time || 0)}</span><b>${fmtNum(pts)}</b><i>Punkte</i>`;
+}
+
+/* Uhr: läuft ab dem ersten Zug, nur solange das Spiel sichtbar ist und kein Dialog offen ist */
+let lastTick = Date.now();
+setInterval(() => {
+  const now = Date.now(), dt = Math.min(2, (now - lastTick) / 1000);
+  lastTick = now;
+  if (!G || !st || st.won || !st.moves || document.hidden || !modal.classList.contains('hidden')) return;
+  st.time = (st.time || 0) + dt;
+  updateScore();
+}, 1000);
 
 function showWin() {
   if (!G || !st.won) return;
@@ -568,7 +620,9 @@ function showWin() {
     `<div class="confetti">${conf}</div>
      <div class="win"><div class="badge">${ICON.star}</div>
      <h2>Gewonnen!</h2>
-     <p class="lead">${G.name} in ${st.moves} Zügen gelöst.<br>Gewonnene Spiele bisher: ${won}</p>
+     <p class="score-big"><b>${fmtNum(st.score)}</b> Punkte</p>
+     ${st.record ? '<p class="record">Neuer Rekord!</p>' : `<p class="best">Bestwert: ${fmtNum(statOf(G.id).best || 0)} Punkte</p>`}
+     <p class="lead">${G.name} in ${fmtTime(st.time || 0)} Minuten und ${st.moves} Zügen gelöst.<br>Gewonnene Spiele bisher: ${won}</p>
      <div class="acts"><button class="btn ghost" data-act="menu">Zum Menü</button><button class="btn primary" data-act="again">Neues Spiel</button></div></div>`,
     { menu: () => { closeModal(); $('btnMenu').click(); }, again: () => { closeModal(); startNew(); } },
     false
